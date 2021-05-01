@@ -1,0 +1,13 @@
+{
+    "name": "com.minus4kelvin.ai",
+    "version": "1.0.0",
+    "displayName": "m4k.AI",
+    "description": "AI system",
+    "unity": "2019.1",
+    "dependencies": {
+      "com.minus4kelvin.core": "1.0.0"
+   },
+   "keywords": [
+      "ai"
+    ]
+}
