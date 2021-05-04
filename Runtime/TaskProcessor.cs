@@ -8,7 +8,7 @@ namespace m4k.AI {
 public class TaskProcessor : MonoBehaviour
 {
     public NavCharacterControl navChar;
-    public TaskInteractObject taskInteractObj;
+    public TaskInteractTrigger taskInteractObj;
     public ItemArranger taskInventory; // visual of current task inventory
     public System.Action onTaskComplete;
     public bool enable = true;
@@ -30,7 +30,7 @@ public class TaskProcessor : MonoBehaviour
             navChar = GetComponentInParent<NavCharacterControl>();
         charAnim = GetComponent<CharacterAnimation>();
 
-        taskInteractObj = navChar.pathTarget.GetComponentInChildren<TaskInteractObject>();
+        taskInteractObj = navChar.pathTarget.GetComponentInChildren<TaskInteractTrigger>();
         taskInteractObj.processor = this;
         taskInteractObj.processorCol = GetComponentInChildren<Collider>();
         taskInteractObj.gameObject.SetActive(false);

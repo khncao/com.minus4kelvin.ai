@@ -13,6 +13,7 @@ public class TaskManager : Singleton<TaskManager>
     public List<TaskProcessor> taskHandlers;
     public List<TaskProcessor> busyHandlers;
     public GameObject readyItemsTarget;
+    public TRegistry<TaskInteractable> taskInteractables;
     public float taskCheckInterval = 1f;
 
     Dictionary<string, List<TaskTarget>> keyTaskTargetsDict = new Dictionary<string, List<TaskTarget>>();
@@ -57,8 +58,19 @@ public class TaskManager : Singleton<TaskManager>
                 // Debug.Log($"Assigned {task.description}");
                 return;
             }
-            nextCheckThresh = Time.time + taskCheckInterval;
+            nextCheckThresh = Time.time + taskCheckInterval * Time.timeScale;
         }
+    }
+
+    public TaskInteractable GetTaskInteractableInventory(Item item, int count) {
+        TaskInteractable taskInteractable = null;
+        for(int i = 0; i < taskInteractables.instances.Count; ++i) {
+            var inst = taskInteractables.instances[i];
+            var amount = inst.inventory.GetItemTotalAmount(item);
+            if(amount >= count)
+                return inst;
+        }
+        return taskInteractable;
     }
 
     public void RegisterTaskHandler(TaskProcessor taskProcessor) {

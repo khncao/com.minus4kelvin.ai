@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace m4k.AI {
-public class TaskInteractObject : MonoBehaviour
+public class TaskInteractTrigger : MonoBehaviour
 {
     public Task task;
     public Command command;

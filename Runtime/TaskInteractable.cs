@@ -1,19 +1,26 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using m4k.InventorySystem;
 
 namespace m4k.AI {
-public class TaskInteractable : MonoBehaviour
+public enum TaskInteractableType {
+    None = 0, Inventory = 1, 
+}
+public class TaskInteractable : MonoBehaviour, ITaskInteractable
 {
-    public Task task;
-    public Command command;
-    public TaskProcessor processor;
-    public Collider processorCol;
+    public TaskInteractableType interactableType;
+    public Inventory inventory;
 
-    private void OnTriggerEnter(Collider other) {
-        if(other == processorCol) {
-            processor.TaskInteract();
-        }
+    private void OnEnable() {
+        TaskManager.I.taskInteractables.RegisterInstance(this);
+    }
+    private void OnDisable() {
+        TaskManager.I.taskInteractables.UnregisterInstance(this);
+    }
+    
+    public void OnTaskInteract(Task task) {
+
     }
 }
 }
