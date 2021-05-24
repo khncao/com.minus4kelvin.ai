@@ -8,82 +8,82 @@ namespace m4k.AI {
 [System.Serializable]
 public class Task
 {
+    public int priority;
     public string description;
     public TaskProcessor processor;
     public ITaskInteractable orderer;
-    public List<Command> taskCommandQ = new List<Command>();
-    public Command currentCommand;
-    public int priority;
+    public TaskCommand currentCommand;
+    public List<TaskCommand> taskCommandQ = new List<TaskCommand>();
 
     public void AddPathPositionCmd(Vector3 pos) {
-        AddCommand(new Command() {
+        AddCommand(new TaskCommand() {
             cmdType = CommandTypes.Path,
             targetPos = pos
         });
     }
     public void AddPathTargetCmd(Transform target) 
     {
-        AddCommand(new Command() { 
+        AddCommand(new TaskCommand() { 
             cmdType = CommandTypes.Path, 
             targetTrans = target,
         });
     }
     public void AddRandomPathCmd() {
-        AddCommand(new Command() {
+        AddCommand(new TaskCommand() {
             cmdType = CommandTypes.Path,
 
         });
     }
     public void AddPathToKeyCmd(string k) {
-        AddCommand(new Command() {
+        AddCommand(new TaskCommand() {
             cmdType = CommandTypes.Path,
             key = k,
         });
     }
     public void AddContextActionCmd() {
-        AddCommand(new Command() {
+        AddCommand(new TaskCommand() {
             cmdType = CommandTypes.Action,
         });
     }
     public void AddWaitCmd(float time) 
     {
-        AddCommand(new Command() { 
+        AddCommand(new TaskCommand() { 
             cmdType = CommandTypes.Wait, 
             duration = time,
         });
     }
     public void AddGetCmd(Transform targetTrans, ITaskInteractable target = null, List<Item> items = null) 
     {
-        AddCommand(new Command() { 
+        AddCommand(new TaskCommand() { 
             cmdType = CommandTypes.Get, 
-            cmdItems = items,
+            orderItems = items,
             targetInteractable = target,
             targetTrans = targetTrans,
         });
     }
     public void AddGiveCmd(Transform targetTrans, ITaskInteractable target = null, List<Item> items = null) 
     {
-        AddCommand(new Command() { 
+        AddCommand(new TaskCommand() { 
             cmdType = CommandTypes.Give, 
-            cmdItems = items,
+            orderItems = items,
             targetInteractable = target,
             targetTrans = targetTrans,
         });
     }
-    public void AddActionCmd() {
-    }
-    public void AddCleanCmd(Transform targetTrans) {
-        AddCommand(new Command() { 
-            cmdType = CommandTypes.Clean, 
-            targetTrans = targetTrans,
+    public void AddActionCmd(string k, Transform target = null, bool des = false) {
+        AddCommand(new TaskCommand() {
+            cmdType = CommandTypes.Action,
+            key = k,
+            targetTrans = target,
+            destroyTarget = des,
         });
     }
     
-    public void AddCommand(Command staffCommand) {
+    public void AddCommand(TaskCommand staffCommand) {
         taskCommandQ.Add(staffCommand);
     }
 
-    public Command GetNextCommand() {
+    public TaskCommand GetNextCommand() {
         if(taskCommandQ.Count == 0) {
             Debug.LogError("Requested command from empty task command queue");
             return null;

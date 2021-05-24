@@ -12,15 +12,17 @@ public class TaskProcessor : MonoBehaviour
     public ItemArranger taskInventory; // visual of current task inventory
     public System.Action onTaskComplete;
     public bool enable = true;
+    public float defaultCmdTimeout = 10f;
+    public float cmdTimer;
     
     public bool HasTask { get { return currTask != null; } }
+    public bool Timeout { get { return cmdTimer > defaultCmdTimeout; }}
 
     CharacterAnimation charAnim;
     float durationTimer;
     bool abortingTask;
-    Task currTask;
-    Command currCmd;
-
+    public Task currTask;
+    public TaskCommand currCmd;
 
     void Start()
     {
@@ -34,7 +36,7 @@ public class TaskProcessor : MonoBehaviour
         taskInteractObj.processor = this;
         taskInteractObj.processorCol = GetComponentInChildren<Collider>();
         taskInteractObj.gameObject.SetActive(false);
-        if(enable) RegisterHandler();
+        RegisterHandler();
         navChar.onArrive += OnNavArrive;
     }
 
@@ -50,72 +52,6 @@ public class TaskProcessor : MonoBehaviour
             TaskManager.I.RegisterTaskHandler(this);
     }
 
-    void HandleCommandTypes() {
-        switch(currCmd.cmdType) {
-            case CommandTypes.Get: {
-                taskInventory.gameObject.SetActive(true);
-                taskInventory.UpdateItems(currCmd.cmdItems);
-                break;
-            }
-            case CommandTypes.Give: {
-                taskInventory.gameObject.SetActive(false);
-                taskInventory.HideItems();
-                break;
-            }
-            case CommandTypes.Clean: {
-                charAnim.CleanFloor();
-                if(currCmd.targetTrans)
-                    Destroy(currCmd.targetTrans.gameObject);
-                break;
-            }
-        }
-    }
-
-    public void TaskInteract() {
-        if(currCmd == null || abortingTask) 
-            return;
-
-        if(currTask == taskInteractObj.task && currCmd == taskInteractObj.command) 
-        {
-            navChar.StopAgent();
-            // taskInteractable.transform.SetParent(transform);
-            taskInteractObj.gameObject.SetActive(false);
-            HandleCommandTypes();
-            currCmd.targetInteractable?.OnTaskInteract(currTask);
-            currCmd = null;
-            GetNextCommand();
-        }
-    }
-
-    public bool AssignTask(Task task) {
-        if(currTask != null && currTask.priority >= task.priority) {
-            Debug.LogWarning("Error: already has task");
-            return false;
-        }
-        if(Time.time - lastAbortTime < 5f) {
-            return false;
-        }
-        abortingTask = false;
-        taskInteractObj.gameObject.SetActive(false);
-        currTask = task;
-        taskInteractObj.processor = this;
-        taskInteractObj.task = task;
-
-        // Debug.Log("Assigned task");
-        
-        GetNextCommand();
-        return true;
-    }
-
-    float lastAbortTime;
-    public void AbortTask() {
-        lastAbortTime = Time.time;
-        abortingTask = true;
-
-        // Debug.Log("Abort");
-        CleanupTask();
-    }
-
     void GetNextCommand() {
         if(currTask.IsEmpty()) {
             // Debug.Log($"Completed {currTask.description}");
@@ -127,14 +63,17 @@ public class TaskProcessor : MonoBehaviour
         if(abortingTask)
             return;
         currCmd = currTask.GetNextCommand();
+        cmdTimer = 0f;
 
-        // Debug.Log("Next command: " + currCmd.cmdType.ToString());
-        // Debug.Log($"Current target transform: {currCmd.targetTrans}");
+        // Debug.Log($"Current target transform: {currCmd.cmdType.ToString()} {currCmd.targetTrans}");
+        taskInteractObj.gameObject.SetActive(true);
 
         if(currCmd.targetTrans) {
             navChar.SetTarget(currCmd.targetTrans);
-            taskInteractObj.gameObject.SetActive(true);
-            // taskInteractable.transform.SetParent(currCmd.targetTrans, false);
+        }
+        else if(currCmd.cmdType == CommandTypes.Action) {
+            ProcessCommand();
+            return;
         }
         else if(!string.IsNullOrEmpty(currCmd.key)) {
             var t = TaskManager.I.GetClosestTaskTarget(currCmd.key, transform);
@@ -150,16 +89,88 @@ public class TaskProcessor : MonoBehaviour
         durationTimer = currCmd.duration;
     }
 
-    void CleanupTask() {
-        if(currTask == null)
+    void ProcessCommand() {
+        switch(currCmd.cmdType) {
+            case CommandTypes.Get: {
+                if(taskInventory) {
+                    taskInventory.gameObject.SetActive(true);
+                    taskInventory.UpdateItems(currCmd.orderItems);
+                }
+                break;
+            }
+            case CommandTypes.Give: {
+                if(taskInventory) {
+                    taskInventory.HideItems();
+                    taskInventory.gameObject.SetActive(false);
+                }
+                break;
+            }
+            case CommandTypes.Action: {
+                charAnim.DoAction(currCmd.key);
+                break;
+            }
+        }
+
+        if(currCmd.destroyTarget && currCmd.targetTrans)
+            Destroy(currCmd.targetTrans.gameObject);
+    }
+
+    public void TaskInteract() {
+        if(currCmd == null || abortingTask) 
             return;
 
+        if(currTask == taskInteractObj.task && currCmd == taskInteractObj.command) 
+        {
+            // Debug.Log($"{currCmd.cmdType.ToString()} Interact");
+            navChar.StopAgent();
+            taskInteractObj.gameObject.SetActive(false);
+            ProcessCommand();
+            currCmd.targetInteractable?.OnTaskInteract(currTask);
+            currCmd = null;
+            GetNextCommand();
+        }
+    }
+
+    public bool AssignTask(Task task) {
+        if(currTask != null && currTask.priority >= task.priority) {
+            Debug.LogWarning("Error: already has task");
+            return false;
+        }
+        if(Time.time - lastAbortTime < 5f) {
+            return false;
+        }
+        abortingTask = false;
+        currTask = task;
+        taskInteractObj.task = task;
+        
+        GetNextCommand();
+        return true;
+    }
+
+    float lastAbortTime;
+    public void AbortTask() {
+        lastAbortTime = Time.time;
+        abortingTask = true;
+
+        // Debug.Log("Abort");
+        CleanupTask();
+    }
+
+    public void CommandTimeout() {
+        Debug.Log("Command timeout");
+        TaskManager.I.AbortTask(currTask);
+        AbortTask();
+    }
+
+    void CleanupTask() {
         taskInteractObj.gameObject.SetActive(false);
+        if(taskInventory)
+            taskInventory.gameObject.SetActive(false);
         currTask = null;
         currCmd = null;
-        taskInteractObj.processor = null;
         taskInteractObj.task = null;
         taskInteractObj.command = null;
+        cmdTimer = 0f;
     }
 }
 }

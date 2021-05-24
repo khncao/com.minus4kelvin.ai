@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using m4k.InventorySystem;
-using m4k.Characters;
 
 namespace m4k.AI {
 public class TaskManager : Singleton<TaskManager>
@@ -12,7 +11,6 @@ public class TaskManager : Singleton<TaskManager>
     public List<Task> activeTasks;
     public List<TaskProcessor> taskHandlers;
     public List<TaskProcessor> busyHandlers;
-    public GameObject readyItemsTarget;
     public TRegistry<TaskInteractable> taskInteractables;
     public float taskCheckInterval = 1f;
 
@@ -40,6 +38,7 @@ public class TaskManager : Singleton<TaskManager>
         activeTasks = new List<Task>();
         taskHandlers = new List<TaskProcessor>();
         busyHandlers = new List<TaskProcessor>();
+        taskInteractables = new TRegistry<TaskInteractable>();
     }
     float nextCheckThresh;
     void Update() {
@@ -60,24 +59,58 @@ public class TaskManager : Singleton<TaskManager>
             }
             nextCheckThresh = Time.time + taskCheckInterval * Time.timeScale;
         }
+        // for(int i = 0; i < busyHandlers.Count; ++i) {
+        //     busyHandlers[i].cmdTimer += Time.deltaTime;
+        //     if(busyHandlers[i].Timeout)
+        //         busyHandlers[i].CommandTimeout();
+        // }
     }
 
-    public TaskInteractable GetTaskInteractableInventory(Item item, int count) {
+    public TaskInteractable GetTaskInteractableInventory(List<Item> items) {
         TaskInteractable taskInteractable = null;
+
         for(int i = 0; i < taskInteractables.instances.Count; ++i) {
             var inst = taskInteractables.instances[i];
-            var amount = inst.inventory.GetItemTotalAmount(item);
-            if(amount >= count)
-                return inst;
+            for(int j = 0; j < items.Count; j++) {
+                if(!inst.HasItem(items[j])) {
+                    break;
+                }
+                if(j == items.Count - 1)
+                    return inst;
+            }
+
         }
+        Debug.LogWarning("Task interact inventory not found");
         return taskInteractable;
     }
+    // public TaskInteractable GetTaskInteractableInventory(Item item, int count) {
+    //     TaskInteractable taskInteractable = null;
+
+    //     for(int i = 0; i < taskInteractables.instances.Count; ++i) {
+    //         var inst = taskInteractables.instances[i];
+    //         if(!inst.HasItem(item)) 
+    //             continue;
+    //         var amount = inst.GetItemTotal(item);
+    //         if(amount >= count)
+    //             return inst;
+    //     }
+    //     Debug.LogWarning("Task interact inventory not found");
+    //     return taskInteractable;
+    // }
 
     public void RegisterTaskHandler(TaskProcessor taskProcessor) {
         taskHandlers.Add(taskProcessor);
     }
     public void UnregisterTaskHandler(TaskProcessor taskProcessor) {
         taskHandlers.Remove(taskProcessor);
+    }
+    public void AbortTask(Task task) {
+        if(activeTasks.Contains(task)) {
+            busyHandlers.Remove(task.processor);
+            taskHandlers.Add(task.processor);
+            activeTasks.Remove(task);
+            staffTaskQ.Add(task);
+        }
     }
     public void CancelTask(Task task, bool unlist = true) {
         if(task == null) return;
@@ -115,8 +148,9 @@ public class TaskManager : Singleton<TaskManager>
             description = "deliver items task",
             priority = 10,
         };
-
-        task.AddGetCmd(readyItemsTarget.transform, null, items);
+        var inv = GetTaskInteractableInventory(items);
+        if(!inv) Debug.Log("No inv");
+        task.AddGetCmd(inv.transform, null, items);
         task.AddGiveCmd(deliverTrans, source, items);
 
         RegisterTask(task);
@@ -124,52 +158,17 @@ public class TaskManager : Singleton<TaskManager>
         return task;
     }
 
-    public Task RegisterCleanItemsTask(Transform cleanTarget) {
+    public Task RegisterActionTask(string key, Transform target = null, int p = 10, bool destroyTarget = false) {
         var task = new Task();
-        task.description = "clean target task";
-        task.priority = 10;
-        // task.orderer = source;
-        task.AddCleanCmd(cleanTarget);
+        task.description = $"{key} task";
+        task.priority = p;
+        if(target) {
+            task.AddPathTargetCmd(target);
+        }
+        task.AddActionCmd(key, target, destroyTarget);
 
         RegisterTask(task);
 
-        return task;
-    }
-
-    public Task RegisterRandomCleanTask() {
-        var task = new Task();
-        task.description = "clean random task";
-        task.AddRandomPathCmd();
-        task.AddContextActionCmd();
-
-        RegisterTask(task);
-        return task;
-    }
-
-    public Task RegisterCustomerGreetTask() {
-        var task = new Task();
-        task.description = "greet customer task";
-        // task.AddPathPositionCmd()
-
-        RegisterTask(task);
-        return task;
-    }
-
-    public Task RegisterGatherTask(Item item) {
-        var task = new Task();
-        task.description = $"gather {item.itemName} task";
-        // task.AddGetCmd()
-        // task.AddGiveCmd()
-
-        RegisterTask(task);
-        return task;
-    }
-    public Task RegisterHuntTask(Character character) {
-        var task = new Task();
-        task.description = $"hunt {character.itemName} task";
-        // task.AddGetCmd()
-
-        RegisterTask(task);
         return task;
     }
 

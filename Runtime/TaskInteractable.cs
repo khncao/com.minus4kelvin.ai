@@ -9,18 +9,46 @@ public enum TaskInteractableType {
 }
 public class TaskInteractable : MonoBehaviour, ITaskInteractable
 {
+    public bool isQuantitive;
     public TaskInteractableType interactableType;
-    public Inventory inventory;
+    public List<ItemInstance> items;
 
-    private void OnEnable() {
+    [System.NonSerialized]
+    Inventory inventory;
+
+    private void Start() {
+        inventory = new Inventory(16);
+        foreach(var i in items)
+            inventory.AddItemAmount(i.item, i.amount);
+
         TaskManager.I.taskInteractables.RegisterInstance(this);
     }
+
+    private void OnEnable() {
+        TaskManager.I?.taskInteractables?.RegisterInstance(this);
+    }
     private void OnDisable() {
-        TaskManager.I.taskInteractables.UnregisterInstance(this);
+        TaskManager.I?.taskInteractables.UnregisterInstance(this);
     }
     
     public void OnTaskInteract(Task task) {
+        if(task.currentCommand.cmdType == CommandTypes.Get) {
+            if(isQuantitive) {
+                // 
+            }
+        }
+        else if(task.currentCommand.cmdType == CommandTypes.Give) {
+            if(isQuantitive) {
 
+            }
+        }
+    }
+
+    public bool HasItem(Item item) {
+        return inventory.HasItem(item);
+    }
+    public int GetItemTotal(Item item) {
+        return inventory.GetItemTotalAmount(item);
     }
 }
 }

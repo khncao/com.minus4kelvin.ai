@@ -5,18 +5,19 @@ using m4k.InventorySystem;
 
 namespace m4k.AI {
 public enum CommandTypes {
-    Path, Wait, Get, Give, Action, Clean
+    Path, Wait, Get, Give, Action
 }
 
 [System.Serializable]
-public class Command 
+public class TaskCommand 
 {
     public CommandTypes cmdType;
-    public List<Item> cmdItems;
     public ITaskInteractable targetInteractable;
     public Transform targetTrans;
     public Vector3 targetPos;
     public string key;
     public float duration;
+    public List<Item> orderItems;
+    public bool destroyTarget;
 }
 }

@@ -6,7 +6,7 @@ namespace m4k.AI {
 public class TaskInteractTrigger : MonoBehaviour
 {
     public Task task;
-    public Command command;
+    public TaskCommand command;
     public TaskProcessor processor;
     public Collider processorCol;
 
