@@ -8,7 +8,7 @@ public class AIStateController : MonoBehaviour
 {
     public Character character; // for profile data for behaviour variation
     public Actor actor;
-    public NavCharacterControl navChar;
+    public IMoveTargetable movable;
     public Animator anim;
 
     State currState;

@@ -1,24 +1,24 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using m4k.Characters;
 using m4k.Items;
 
 namespace m4k.AI {
 public class TaskProcessor : MonoBehaviour
 {
-    public NavCharacterControl navChar;
     public TaskInteractTrigger taskInteractObj;
     public ItemArranger taskInventory; // visual of current task inventory
-    public System.Action onTaskComplete;
+    public Animator anim;
     public bool enable = true;
     public float defaultCmdTimeout = 10f;
     public float cmdTimer;
-    
+
+    public System.Action onTaskComplete;
+
     public bool HasTask { get { return currTask != null; } }
     public bool Timeout { get { return cmdTimer > defaultCmdTimeout; }}
 
-    CharacterAnimation charAnim;
+    IMoveTargetable movable;
     float durationTimer;
     bool abortingTask;
     public Task currTask;
@@ -26,21 +26,23 @@ public class TaskProcessor : MonoBehaviour
 
     void Start()
     {
-        if(!navChar)
-            navChar = GetComponentInChildren<NavCharacterControl>();
-        if(!navChar)
-            navChar = GetComponentInParent<NavCharacterControl>();
-        charAnim = GetComponent<CharacterAnimation>();
+        movable = GetComponentInChildren<IMoveTargetable>();
+        if(movable == null)
+            movable = GetComponentInParent<IMoveTargetable>();
+        if(movable == null) {
+            Debug.LogError($"No movable interface found on {gameObject}");
+        }
+        if(!anim) anim = GetComponent<Animator>();
 
-        taskInteractObj = navChar.pathTarget.GetComponentInChildren<TaskInteractTrigger>();
+        if(!taskInteractObj) Debug.LogError($"{gameObject} needs taskInteractObj TaskInteractTrigger");
         taskInteractObj.processor = this;
         taskInteractObj.processorCol = GetComponentInChildren<Collider>();
         taskInteractObj.gameObject.SetActive(false);
         RegisterHandler();
-        navChar.onArrive += OnNavArrive;
+        movable.OnArrive += OnNavArrive;
     }
 
-    void OnNavArrive(Transform target) {
+    void OnNavArrive() {
         if(currCmd != null && currCmd.cmdType == CommandTypes.Path) {
             TaskInteract();
         }
@@ -69,7 +71,7 @@ public class TaskProcessor : MonoBehaviour
         taskInteractObj.gameObject.SetActive(true);
 
         if(currCmd.targetTrans) {
-            navChar.SetTarget(currCmd.targetTrans);
+            movable.SetTarget(currCmd.targetTrans, true);
         }
         else if(currCmd.cmdType == CommandTypes.Action) {
             ProcessCommand();
@@ -77,8 +79,9 @@ public class TaskProcessor : MonoBehaviour
         }
         else if(!string.IsNullOrEmpty(currCmd.key)) {
             var t = TaskManager.I.GetClosestTaskTarget(currCmd.key, transform);
-            if(t)
-                navChar.SetTarget(t.transform);
+            if(t) {
+                movable.SetTarget(t.transform, true);
+            }
         }
         else {
             Debug.Log($"Aborting {currTask.description}: No target transform");
@@ -106,7 +109,7 @@ public class TaskProcessor : MonoBehaviour
                 break;
             }
             case CommandTypes.Action: {
-                charAnim.DoAction(currCmd.key);
+                anim.SetTrigger(currCmd.key);
                 break;
             }
         }
@@ -122,7 +125,7 @@ public class TaskProcessor : MonoBehaviour
         if(currTask == taskInteractObj.task && currCmd == taskInteractObj.command) 
         {
             // Debug.Log($"{currCmd.cmdType.ToString()} Interact");
-            navChar.StopAgent();
+            movable.Stop();
             taskInteractObj.gameObject.SetActive(false);
             ProcessCommand();
             currCmd.targetInteractable?.OnTaskInteract(currTask);
