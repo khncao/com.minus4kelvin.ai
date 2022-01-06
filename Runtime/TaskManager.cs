@@ -1,219 +1,117 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using m4k.InventorySystem;
+using m4k.Items;
 
 namespace m4k.AI {
+/// <summary>
+/// Manage tasks: track open and inprogress tasks; assign open tasks to valid processor
+/// </summary>
 public class TaskManager : Singleton<TaskManager>
 {
-    // TODO: Change to customizable priority queue
-    public List<Task> staffTaskQ;
-    public List<Task> activeTasks;
-    public List<TaskProcessor> taskHandlers;
-    public List<TaskProcessor> busyHandlers;
-    public TRegistry<TaskInteractable> taskInteractables;
-    public float taskCheckInterval = 1f;
+    public System.Action onTaskAdded;
 
-    Dictionary<string, List<TaskTarget>> keyTaskTargetsDict = new Dictionary<string, List<TaskTarget>>();
-    Dictionary<string, object> preconditions = new Dictionary<string, object>();
-    Dictionary<string, object> effects = new Dictionary<string, object>();
-    bool evicting;
-    float lastEvictTIme;
+    List<Task> openTasks = new List<Task>();
+    List<Task> busyTasks = new List<Task>();
 
-    // [NaughtyAttributes.Button]
-    public void TestPlayerTask() {
-        // CharacterManager.I.Player.ToggleTaskHandling(true);
 
-        Task test = new Task();
-        test.AddPathToKeyCmd("test1");
-        RegisterTask(test);
-    }
-
-    protected override void Awake()
-    {
-        base.Awake();
-        if(m_ShuttingDown) return;
-
-        staffTaskQ = new List<Task>();
-        activeTasks = new List<Task>();
-        taskHandlers = new List<TaskProcessor>();
-        busyHandlers = new List<TaskProcessor>();
-        taskInteractables = new TRegistry<TaskInteractable>();
-    }
-    float nextCheckThresh;
-    void Update() {
-        if(Time.time > nextCheckThresh && taskHandlers.Count > 0 && staffTaskQ.Count > 0) {
-            var task = staffTaskQ[staffTaskQ.Count - 1];
-
-            for(int i = 0; i < taskHandlers.Count; ++i) {
-                var handler = taskHandlers[i];
-                if(!taskHandlers[i].AssignTask(task)) continue;
-
-                task.processor = handler;
-                activeTasks.Add(task);
-                busyHandlers.Add(handler);
-                staffTaskQ.RemoveAt(staffTaskQ.Count - 1);
-                taskHandlers.RemoveAt(i);
-                // Debug.Log($"Assigned {task.description}");
-                return;
+    public Task TryGetTask(StateProcessor processor) {
+        if(openTasks.Count > 0) {
+            var pop = openTasks[openTasks.Count - 1];
+            if(processor.TryChangeState(pop)) {
+                openTasks.Remove(pop);
+                busyTasks.Add(pop);
+                return pop;
             }
-            nextCheckThresh = Time.time + taskCheckInterval * Time.timeScale;
         }
-        // for(int i = 0; i < busyHandlers.Count; ++i) {
-        //     busyHandlers[i].cmdTimer += Time.deltaTime;
-        //     if(busyHandlers[i].Timeout)
-        //         busyHandlers[i].CommandTimeout();
-        // }
+        return null;
     }
 
-    public TaskInteractable GetTaskInteractableInventory(List<Item> items) {
-        TaskInteractable taskInteractable = null;
-
-        for(int i = 0; i < taskInteractables.instances.Count; ++i) {
-            var inst = taskInteractables.instances[i];
-            for(int j = 0; j < items.Count; j++) {
-                if(!inst.HasItem(items[j])) {
-                    break;
-                }
-                if(j == items.Count - 1)
-                    return inst;
-            }
-
+    public void AbortAllTasks() {
+        foreach(var t in busyTasks) {
+            t.processor.AbortState();
         }
-        Debug.LogWarning("Task interact inventory not found");
-        return taskInteractable;
     }
-    // public TaskInteractable GetTaskInteractableInventory(Item item, int count) {
-    //     TaskInteractable taskInteractable = null;
 
-    //     for(int i = 0; i < taskInteractables.instances.Count; ++i) {
-    //         var inst = taskInteractables.instances[i];
-    //         if(!inst.HasItem(item)) 
-    //             continue;
-    //         var amount = inst.GetItemTotal(item);
-    //         if(amount >= count)
-    //             return inst;
-    //     }
-    //     Debug.LogWarning("Task interact inventory not found");
-    //     return taskInteractable;
-    // }
-
-    public void RegisterTaskHandler(TaskProcessor taskProcessor) {
-        taskHandlers.Add(taskProcessor);
-    }
-    public void UnregisterTaskHandler(TaskProcessor taskProcessor) {
-        taskHandlers.Remove(taskProcessor);
-    }
     public void AbortTask(Task task) {
-        if(activeTasks.Contains(task)) {
-            busyHandlers.Remove(task.processor);
-            taskHandlers.Add(task.processor);
-            activeTasks.Remove(task);
-            staffTaskQ.Add(task);
+        if(busyTasks.Contains(task)) {
+            CleanupTask(task);
+            openTasks.Add(task);
         }
     }
+
     public void CancelTask(Task task, bool unlist = true) {
         if(task == null) return;
 
-        if(activeTasks.Contains(task)) {
+        if(busyTasks.Contains(task)) {
             Debug.Log($"Canceling {task.description}");
-            task.processor.AbortTask();
-            busyHandlers.Remove(task.processor);
-            taskHandlers.Add(task.processor);
-            activeTasks.Remove(task);
+            task.processor.AbortState();
+            CleanupTask(task);
         }
 
         if(unlist) {
-            int taskInd = staffTaskQ.FindIndex(x=>x == task);
+            int taskInd = openTasks.FindIndex(x=>x == task);
             if(taskInd != -1) {
-                staffTaskQ.RemoveAt(taskInd);
+                openTasks.RemoveAt(taskInd);
             }
         }
     }
+
     public void CompleteTask(Task task) {
-        if(task != null && activeTasks.Contains(task)) {
-            busyHandlers.Remove(task.processor);
-            taskHandlers.Add(task.processor);
-            activeTasks.Remove(task);
+        if(task != null && busyTasks.Contains(task)) {
+            CleanupTask(task);
         }
     }
 
-    void RegisterTask(Task task) {
-        staffTaskQ.Add(task);
+    void CleanupTask(Task task) {
+        busyTasks.Remove(task);
+        task.OnExit();
     }
-    public Task RegisterDeliverItemsTask(Transform deliverTrans, ITaskInteractable source = null, List<Item> items = null) 
+
+    // Register tasks
+
+    // Queue<System.Action> taskQueue = new Queue<System.Action>();
+    // taskQueue.Enqueue(()=>RegisterDeliverItemsTask(deliverTarget, deliverInteract, items));
+
+    public void RegisterTask(Task task) {
+        openTasks.Add(task);
+        onTaskAdded?.Invoke();
+    }
+
+    // TODO: self-contained GetItems and PutItems editor editable
+    public Task RegisterDeliverItemsTask(Transform deliverTarget, IStateInteractable deliverInteract = null, List<ItemInstance> items = null) 
     {
-        var task = new Task() {
-            orderer = source,
-            description = "deliver items task",
-            priority = 10,
-        };
-        var inv = GetTaskInteractableInventory(items);
-        if(!inv) Debug.Log("No inv");
-        task.AddGetCmd(inv.transform, null, items);
-        task.AddGiveCmd(deliverTrans, source, items);
-
-        RegisterTask(task);
-
-        return task;
-    }
-
-    public Task RegisterActionTask(string key, Transform target = null, int p = 10, bool destroyTarget = false) {
-        var task = new Task();
-        task.description = $"{key} task";
-        task.priority = p;
-        if(target) {
-            task.AddPathTargetCmd(target);
-        }
-        task.AddActionCmd(key, target, destroyTarget);
-
-        RegisterTask(task);
-
-        return task;
-    }
-
-    public void EvictAll() {
-        evicting = true;
-        lastEvictTIme = Time.time;
-
-        foreach(var h in busyHandlers)
-            h.AbortTask();
-    }
-
-    public void RegisterTaskTarget(string key, TaskTarget target) {
-        List<TaskTarget> taskTargets;
-        if(!keyTaskTargetsDict.TryGetValue(key, out taskTargets)) {
-            taskTargets = new List<TaskTarget>();
-            keyTaskTargetsDict.Add(key, taskTargets);
-        }
-        // Debug.Log($"Registered task target key: {key}; {target.gameObject}");
-        taskTargets.Add(target);
-    }
-
-    public void UnregisterTaskTarget(string key, TaskTarget target) {
-        List<TaskTarget> taskTargets;
-        if(!keyTaskTargetsDict.TryGetValue(key, out taskTargets)) {
-            return;
-        }
-        taskTargets.Remove(target);
-    }
-
-    public TaskTarget GetClosestTaskTarget(string key, Transform t) {
-        List<TaskTarget> targets;
-        if(!keyTaskTargetsDict.TryGetValue(key, out targets)) {
-            Debug.LogWarning($"TaskTargets not found for {key}");
+        var inv = StateInteractableManager.I.GetClosestInteractableInventoryWithItems(items, deliverTarget);
+        if(inv == null) {
+            Debug.Log("No task inv");
             return null;
         }
-        TaskTarget closest = null;
-        float closestDist = Mathf.Infinity;
-        foreach(var i in targets) {
-            var sqrDist = (i.transform.position - t.position).sqrMagnitude;
-            if(sqrDist < closestDist) {
-                closestDist = sqrDist;
-                closest = i;
-            }
-        }
-        return closest;
+
+        var task = new Task("deliver items task", 10);
+
+        task.Enqueue(new Path(inv.transform));
+        task.Enqueue(new GetItems(items, inv));
+        task.Enqueue(new Path(deliverTarget));
+        task.Enqueue(new PutItems(items, deliverInteract));
+
+        RegisterTask(task);
+        return task;
+    }
+
+    public Task RegisterActionTask(string key, Transform target = null, int p = 10, GameObject destroyTarget = null) 
+    {
+        var task = new Task($"{key} task", p);
+
+        if(target) 
+            task.Enqueue(new Path(target));
+
+        task.Enqueue(new TriggerAnimation(key));
+
+        if(destroyTarget) 
+            task.Enqueue(new Destroy(destroyTarget));
+
+        RegisterTask(task);
+        return task;
     }
 }
 }
