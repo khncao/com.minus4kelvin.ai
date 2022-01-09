@@ -62,4 +62,15 @@ public class WanderWrapper : StateWrapper {
         return new Wander(pivotPosition, radius, priority);
     }
 }
+
+[CreateAssetMenu(fileName = "WanderCommand", menuName = "Data/AI/States/WanderCommand", order = 0)]
+public class WanderCommand : StateWrapperBase {
+    [Tooltip("Leave at default 0, 0, 0 to pivot from current processor position")]
+    public Vector3 pivotPosition;
+    public float radius;
+
+    public override IState GetState() {
+        return new Wander(pivotPosition, radius, priority);
+    }
+}
 }

@@ -1,3 +1,4 @@
+using UnityEngine;
 
 namespace m4k.AI {
 // animationclip length instead? combine anim+audio+particle?
@@ -44,6 +45,15 @@ public struct TriggerAnimation : IState {
 
 [System.Serializable]
 public class TriggerAnimationWrapper : StateWrapper {
+    public string paramName;
+
+    public override IState GetState() {
+        return new TriggerAnimation(paramName, priority);
+    }
+}
+
+[CreateAssetMenu(fileName = "TriggerAnimationCommand", menuName = "Data/AI/States/TriggerAnimationCommand", order = 0)]
+public class TriggerAnimationCommand : StateWrapperBase {
     public string paramName;
 
     public override IState GetState() {

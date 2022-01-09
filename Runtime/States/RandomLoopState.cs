@@ -82,4 +82,20 @@ public class RandomLoopWrapper : StateWrapper {
         return state;
     }
 }
+
+[CreateAssetMenu(fileName = "RandomLoopState", menuName = "Data/AI/States/RandomLoopState", order = 0)]
+public class RandomLoopState : StateWrapperBase {
+    public float intervalBetweenStates;
+
+    [InspectInline(canCreateSubasset = true)]
+    public List<StateWrapperBase> states;
+
+    public override IState GetState() {
+        var state = new RandomLoop(intervalBetweenStates, priority);
+        foreach(var s in states) {
+            state.AddState(s.GetState());
+        }
+        return state;
+    }
+}
 }

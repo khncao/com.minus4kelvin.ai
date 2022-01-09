@@ -76,4 +76,15 @@ public class PatrolWrapper : StateWrapper {
         return new Patrol(points, randomOrder, nextPathDelay, priority);
     }
 }
+
+[CreateAssetMenu(fileName = "PatrolState", menuName = "Data/AI/States/PatrolState", order = 0)]
+public class PatrolState : StateWrapperBase {
+    public List<Transform> points;
+    public bool randomOrder;
+    public float nextPathDelay;
+
+    public override IState GetState() {
+        return new Patrol(points, randomOrder, nextPathDelay, priority);
+    }
+}
 }

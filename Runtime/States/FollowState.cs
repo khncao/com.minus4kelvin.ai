@@ -65,4 +65,19 @@ public class FollowWrapper : StateWrapper {
         return new Follow(target, squaredFollowThreshold, priority);
     }
 }
+
+[CreateAssetMenu(fileName = "FollowState", menuName = "Data/AI/States/FollowState", order = 0)]
+public class FollowState : StateWrapperBase {
+    [Tooltip("Leaving null will try to find targetTag, then try processor currentTarget")]
+    public Transform target;
+    public string targetTag;
+    public float squaredFollowThreshold;
+
+    public override IState GetState() {
+        if(!string.IsNullOrEmpty(targetTag)) {
+            target = GameObject.FindGameObjectWithTag(targetTag).transform;
+        }
+        return new Follow(target, squaredFollowThreshold, priority);
+    }
+}
 }

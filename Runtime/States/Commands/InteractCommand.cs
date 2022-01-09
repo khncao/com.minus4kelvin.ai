@@ -38,4 +38,16 @@ public class InteractWrapper : StateWrapper {
         return new Interact(t, priority);
     }
 }
+
+[CreateAssetMenu(fileName = "InteractCommand", menuName = "Data/AI/States/InteractCommand", order = 0)]
+public class InteractCommand : StateWrapperBase {
+    [Tooltip("GameObject with component that implements IStateInteractable")]
+    public GameObject target;
+
+    public override IState GetState() {
+        IStateInteractable t = null;
+        target.TryGetComponent<IStateInteractable>(out t);
+        return new Interact(t, priority);
+    }
+}
 }

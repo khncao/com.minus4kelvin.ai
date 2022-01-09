@@ -74,4 +74,18 @@ public class StateSequenceWrapper : StateWrapper {
         return state;
     }
 }
+
+[CreateAssetMenu(fileName = "StateSequenceState", menuName = "Data/AI/States/StateSequenceState", order = 0)]
+public class StateSequenceState : StateWrapperBase {
+    [InspectInline(canCreateSubasset = true)]
+    public List<StateWrapperBase> states;
+
+    public override IState GetState() {
+        var state = new StateSequence(priority);
+        foreach(var s in states) {
+            state.Enqueue(s.GetState());
+        }
+        return state;
+    }
+}
 }

@@ -74,4 +74,20 @@ public class TaskWrapper : StateWrapper {
         return state;
     }
 }
+
+[CreateAssetMenu(fileName = "TaskState", menuName = "Data/AI/States/TaskState", order = 0)]
+public class TaskState : StateWrapperBase {
+    public string description;
+    
+    [InspectInline(canCreateSubasset = true)]
+    public List<StateWrapperBase> states;
+
+    public override IState GetState() {
+        var state = new Task(description, priority);
+        foreach(var s in states) {
+            state.Enqueue(s.GetState());
+        }
+        return state;
+    }
+}
 }

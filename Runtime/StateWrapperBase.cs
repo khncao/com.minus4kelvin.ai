@@ -13,4 +13,11 @@ public abstract class StateWrapper {
 
     public abstract IState GetState();
 }
+
+public abstract class StateWrapperBase : ScriptableObject {
+    public int priority;
+    public Conditions conditions;
+
+    public abstract IState GetState();
+}
 }

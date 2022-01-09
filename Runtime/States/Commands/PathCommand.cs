@@ -76,4 +76,18 @@ public class PathWrapper : StateWrapper {
             return new Path(targetPosition, priority);
     }
 }
+
+[CreateAssetMenu(fileName = "PathCommand", menuName = "Data/AI/States/PathCommand", order = 0)]
+public class PathCommand : StateWrapperBase {
+    [Tooltip("Will fallback to targetPosition if null")]
+    public Transform targetTransform;
+    public Vector3 targetPosition;
+
+    public override IState GetState() {
+        if(targetTransform)
+            return new Path(targetTransform, priority);
+        else
+            return new Path(targetPosition, priority);
+    }
+}
 }

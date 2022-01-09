@@ -33,4 +33,13 @@ public class DestroyWrapper : StateWrapper {
         return new Destroy(go, priority);
     }
 }
+
+[CreateAssetMenu(fileName = "DestroyCommand", menuName = "Data/AI/States/DestroyCommand", order = 0)]
+public class DestroyCommand : StateWrapperBase {
+    public GameObject go;
+    
+    public override IState GetState() {
+        return new Destroy(go, priority);
+    }
+}
 }

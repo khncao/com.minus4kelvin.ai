@@ -34,4 +34,13 @@ public class WaitWrapper : StateWrapper {
         return new Wait(waitTime, priority);
     }
 }
+
+[CreateAssetMenu(fileName = "WaitCommand", menuName = "Data/AI/States/WaitCommand", order = 0)]
+public class WaitCommand : StateWrapperBase {
+    public float waitTime;
+
+    public override IState GetState() {
+        return new Wait(waitTime, priority);
+    }
+}
 }

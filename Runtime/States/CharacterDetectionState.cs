@@ -66,4 +66,21 @@ public class CharacterDetectionWrapper : StateWrapper {
         return new CharacterDetection(detectingState.GetState(), gotoState.GetState(), self, characterTag, maxSquaredRange, viewAngles, priority);
     }
 }
+
+[CreateAssetMenu(fileName = "CharacterDetectionState", menuName = "Data/AI/States/CharacterDetectionState", order = 0)]
+public class CharacterDetectionState : StateWrapperBase {
+    public string characterTag;
+    public float maxSquaredRange;
+    public float viewAngles;
+
+    [Tooltip("Basis to perform detection. Will use processor transform if null")]
+    public Transform self;
+    
+    [InspectInline(canCreateSubasset = true)]
+    public StateWrapperBase detectingState, gotoState;
+
+    public override IState GetState() {
+        return new CharacterDetection(detectingState.GetState(), gotoState.GetState(), self, characterTag, maxSquaredRange, viewAngles, priority);
+    }
+}
 }
