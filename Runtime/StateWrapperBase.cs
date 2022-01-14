@@ -8,6 +8,14 @@ namespace m4k.AI {
 /// </summary>
 [Serializable]
 public abstract class StateWrapper {
+    [Range(-100, 100)]
+    public int priority;
+    public Conditions conditions;
+
+    public abstract IState GetState();
+}
+
+public abstract class StateWrapperBase : ScriptableObject {
     public int priority;
     public Conditions conditions;
 

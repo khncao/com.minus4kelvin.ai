@@ -33,4 +33,14 @@ public class DestroyWrapper : StateWrapper {
         return new Destroy(go, priority);
     }
 }
+
+[CreateAssetMenu(fileName = "DestroyCommand", menuName = "Data/AI/States/DestroyCommand", order = 0)]
+public class DestroyCommand : StateWrapperBase {
+    [Header("If null, will destroy processor currentTarget")]
+    public GameObject go;
+    
+    public override IState GetState() {
+        return new Destroy(go, priority);
+    }
+}
 }

@@ -56,4 +56,14 @@ public class TaskListenerWrapper : StateWrapper {
         return new TaskListener(state.GetState(), priority);
     }
 }
+
+[CreateAssetMenu(fileName = "TaskListenerState", menuName = "Data/AI/States/TaskListenerState", order = 0)]
+public class TaskListenerState : StateWrapperBase {
+    [InspectInline(canCreateSubasset = true)]
+    public StateWrapperBase state;
+
+    public override IState GetState() {
+        return new TaskListener(state.GetState(), priority);
+    }
+}
 }

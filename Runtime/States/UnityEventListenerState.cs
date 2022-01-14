@@ -10,11 +10,11 @@ public class UnityEventListener : IState {
     public StateProcessor processor { get; private set; }
 
     IState _state;
-    UnityEvent _unityEvent;
+    UnityEventSO _unityEvent;
 
     bool _reacting;
 
-    public UnityEventListener(UnityEvent unityEvent, IState state, int priority = -1, StateProcessor processor = null) {
+    public UnityEventListener(UnityEventSO unityEvent, IState state, int priority = -1, StateProcessor processor = null) {
         this._state = state;
         this._unityEvent = unityEvent;
         this._reacting = false;
@@ -25,6 +25,7 @@ public class UnityEventListener : IState {
     public void OnEnter(StateProcessor processor) {
         this.processor = processor;
 
+        _unityEvent.RemoveListener(OnEvent);
         _unityEvent.AddListener(OnEvent);
     }
 
@@ -51,18 +52,29 @@ public class UnityEventListener : IState {
     }
 }
 
-// [System.Serializable]
-// public class UnityEventListenerWrapper : StateWrapper {
-//     [SerializeReference]
-// #if SERIALIZE_REFS
-//     [SubclassSelector]
-// #endif
-//     public StateWrapper reactState;
-//     public UnityEvent unityEvent;
+[System.Serializable]
+public class UnityEventListenerWrapper : StateWrapper {
+    [SerializeReference]
+#if SERIALIZE_REFS
+    [SubclassSelector]
+#endif
+    public StateWrapper reactState;
+    public UnityEventSO unityEvent;
 
 
-//     public override IState GetState() {
-//         return new UnityEventListener(unityEvent, reactState.GetState(), priority);
-//     }
-// }
+    public override IState GetState() {
+        return new UnityEventListener(unityEvent, reactState.GetState(), priority);
+    }
+}
+
+[CreateAssetMenu(fileName = "UnityEventListenerState", menuName = "Data/AI/States/UnityEventListenerState", order = 0)]
+public class UnityEventListenerState : StateWrapperBase {
+    public StateWrapperBase reactState;
+    public UnityEventSO unityEvent;
+
+
+    public override IState GetState() {
+        return new UnityEventListener(unityEvent, reactState.GetState(), priority);
+    }
+}
 }

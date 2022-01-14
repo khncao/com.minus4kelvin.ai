@@ -60,4 +60,13 @@ public class PathKeyInteractWrapper : StateWrapper {
         return new PathKeyInteract(key, priority);
     }
 }
+
+[CreateAssetMenu(fileName = "PathKeyInteractCommand", menuName = "Data/AI/States/PathKeyInteractCommand", order = 0)]
+public class PathKeyInteractCommand : StateWrapperBase {
+    public string key;
+
+    public override IState GetState() {
+        return new PathKeyInteract(key, priority);
+    }
+}
 }

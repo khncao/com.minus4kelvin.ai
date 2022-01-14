@@ -30,7 +30,9 @@ public struct GetItems : IState {
             Debug.LogWarning("Failed to find suitable interactable inventory");
             return;
         }
-        processor.ShowItems(items);
+        // processor.ShowItems(items);
+        // processor.itemArranger.GetItems(items);
+        processor.inventory?.inventory.AddItemAmounts(items);
         interactable.OnStateInteract(this);
     }
 

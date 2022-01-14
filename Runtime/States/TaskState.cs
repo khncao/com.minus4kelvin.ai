@@ -44,9 +44,9 @@ public class Task : IState
 
     public void OnExit() {
         _sequenceState.OnExit();
-        if(processor.itemArranger.isActive) { // if has task items
-            // create drop for player/ai pick up or return items to original storage location
-        }
+        // if(processor.itemArranger.isActive) { // if has task items
+        //     // create drop for player/ai pick up or return items to original storage location
+        // }
         // Re register incomplete task
         // if(!_completed) {
         //     TaskManager.I.RegisterTask(this);
@@ -65,6 +65,22 @@ public class TaskWrapper : StateWrapper {
 #endif
     public List<StateWrapper> states;
     
+
+    public override IState GetState() {
+        var state = new Task(description, priority);
+        foreach(var s in states) {
+            state.Enqueue(s.GetState());
+        }
+        return state;
+    }
+}
+
+[CreateAssetMenu(fileName = "TaskState", menuName = "Data/AI/States/TaskState", order = 0)]
+public class TaskState : StateWrapperBase {
+    public string description;
+    
+    [InspectInline(canCreateSubasset = true)]
+    public List<StateWrapperBase> states;
 
     public override IState GetState() {
         var state = new Task(description, priority);
