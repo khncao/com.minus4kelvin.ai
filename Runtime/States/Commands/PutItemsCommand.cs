@@ -30,7 +30,9 @@ public struct PutItems : IState {
             Debug.LogWarning("Failed to find suitable interactable inventory");
             return;
         }
-        processor.HideItems(items);
+        // processor.HideItems(items);
+        // processor.itemArranger.RemoveItems(items);
+        processor.inventory?.inventory.RemoveItemAmounts(items);
         interactable.OnStateInteract(this);
     }
 

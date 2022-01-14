@@ -98,14 +98,14 @@ public class TaskManager : Singleton<TaskManager>
         return task;
     }
 
-    public Task RegisterActionTask(string key, Transform target = null, int p = 10, GameObject destroyTarget = null) 
+    public Task RegisterActionTask(string triggerParam, int animLayer, Transform target = null, int p = 10, GameObject destroyTarget = null) 
     {
-        var task = new Task($"{key} task", p);
+        var task = new Task($"{triggerParam} task", p);
 
         if(target) 
             task.Enqueue(new Path(target));
 
-        task.Enqueue(new TriggerAnimation(key));
+        task.Enqueue(new TriggerAnimation(animLayer, triggerParam));
 
         if(destroyTarget) 
             task.Enqueue(new Destroy(destroyTarget));

@@ -16,7 +16,7 @@ public struct Interact : IState {
     public void OnEnter(StateProcessor processor) {
         this.processor = processor;
         if(_interactable == null && processor.currentTarget) {
-            if(processor.currentTarget is IStateInteractable interactable)
+            if(processor.currentTarget.TryGetComponent<IStateInteractable>(out IStateInteractable interactable)) 
                 _interactable = interactable;
         }
         _interactable.OnStateInteract(this);
@@ -41,6 +41,7 @@ public class InteractWrapper : StateWrapper {
 
 [CreateAssetMenu(fileName = "InteractCommand", menuName = "Data/AI/States/InteractCommand", order = 0)]
 public class InteractCommand : StateWrapperBase {
+    [Header("IStateInteractable on target or processor currentTarget if null")]
     [Tooltip("GameObject with component that implements IStateInteractable")]
     public GameObject target;
 

@@ -36,7 +36,8 @@ public class CharacterDetection : IState {
         {
             _lastCheckTime = Time.time;
             processor.SetTarget(_detector.GetCachedClosest().transform);
-            return processor.TryChangeState(_gotoState);
+            processor.TryChangeState(_gotoState, true);
+            return false; // prevent onStateComplete call
         }
         return _detectingState.OnUpdate();
     }
@@ -50,7 +51,8 @@ public class CharacterDetection : IState {
 public class CharacterDetectionWrapper : StateWrapper {
     public string characterTag;
     public float maxSquaredRange;
-    public float viewAngles;
+    [Range(0f, 360f)]
+    public float viewAngleOverride;
 
     [Tooltip("Basis to perform detection. Will use processor transform if null")]
     public Transform self;
@@ -63,7 +65,7 @@ public class CharacterDetectionWrapper : StateWrapper {
 
 
     public override IState GetState() {
-        return new CharacterDetection(detectingState.GetState(), gotoState.GetState(), self, characterTag, maxSquaredRange, viewAngles, priority);
+        return new CharacterDetection(detectingState.GetState(), gotoState.GetState(), self, characterTag, maxSquaredRange, viewAngleOverride, priority);
     }
 }
 
@@ -71,7 +73,8 @@ public class CharacterDetectionWrapper : StateWrapper {
 public class CharacterDetectionState : StateWrapperBase {
     public string characterTag;
     public float maxSquaredRange;
-    public float viewAngles;
+    [Range(0f, 360f)]
+    public float viewAngleOverride;
 
     [Tooltip("Basis to perform detection. Will use processor transform if null")]
     public Transform self;
@@ -80,7 +83,7 @@ public class CharacterDetectionState : StateWrapperBase {
     public StateWrapperBase detectingState, gotoState;
 
     public override IState GetState() {
-        return new CharacterDetection(detectingState.GetState(), gotoState.GetState(), self, characterTag, maxSquaredRange, viewAngles, priority);
+        return new CharacterDetection(detectingState.GetState(), gotoState.GetState(), self, characterTag, maxSquaredRange, viewAngleOverride, priority);
     }
 }
 }

@@ -12,17 +12,20 @@ namespace m4k.AI {
 /// </summary>
 public class StateProcessor : MonoBehaviour
 {
+    // TODO: move animation utilities to more abstract/general context
     public static List<StateProcessor> stateProcessors { get; } = new List<StateProcessor>();
     public static System.Action<StateProcessor> onAddProcessor, onRemoveProcessor;
 
     public StatesProfile statesProfile;
     public ProcessorProximityTrigger proximityTrigger;
     public INavMovable movable;
-    public ItemArranger itemArranger;
+    public InventoryComponent inventory;
     public Animator anim;
     public CharacterControl cc;
+    public Collider col;
     public bool conscriptable = true;
     public float detectionCooldown = 1f;
+    public float viewAngles = 180f;
 
     public System.Action onStateComplete, onArrive;
 
@@ -36,8 +39,10 @@ public class StateProcessor : MonoBehaviour
     protected PlayableGraph playableGraph;
     protected StateMachine stateMachine;
 
-    // protected DetectRadiusAngle<IStateInteractable> stateInteractableDetector;
-    // protected DetectRadiusAngle<CharacterControl> characterControlDetector;
+    protected Queue<IState> eventStateQueue = new Queue<IState>();
+    // protected Dictionary<string, AnimatorStateCallbacks> animatorStateCallbacks = new Dictionary<string, AnimatorStateCallbacks>();
+
+    public AnimatorStateInfo[] currAnimStateInfo, prevAnimStateInfo, defaultAnimStateInfo;
 
     protected virtual void Start() {
         movable = GetComponentInChildren<INavMovable>();
@@ -47,33 +52,68 @@ public class StateProcessor : MonoBehaviour
             Debug.LogError($"No movable interface found on {gameObject}");
             return;
         }
+        
+        if(!inventory)
+            inventory = GetComponentInChildren<InventoryComponent>();
+        if(!inventory)
+            Debug.LogWarning($"No inventory found on {gameObject} processor");
+
         if(!anim) anim = GetComponent<Animator>();
+        // var smbs = anim.GetBehaviours<AnimatorStateCallbacks>();
+        // foreach(var smb in smbs) {
+        //     if(string.IsNullOrEmpty(smb.stateName))
+        //         continue;
+        //     animatorStateCallbacks.Add(smb.stateName, smb);
+        // }
+        currAnimStateInfo = new AnimatorStateInfo[anim.layerCount];
+        prevAnimStateInfo = new AnimatorStateInfo[anim.layerCount];
+        defaultAnimStateInfo = new AnimatorStateInfo[anim.layerCount];
+        for(int i = 0; i < anim.layerCount; ++i) {
+            defaultAnimStateInfo[i] = anim.GetCurrentAnimatorStateInfo(i);
+            currAnimStateInfo[i] = prevAnimStateInfo[i] = defaultAnimStateInfo[i];
+        }
+
+        if(!col)
+            col = GetComponentInChildren<Collider>();
 
         if(!proximityTrigger) {
             Debug.LogError($"{gameObject} needs taskInteractObj TaskInteractTrigger on navigation target object");
             return;
         }
         proximityTrigger.processor = this;
-        proximityTrigger.processorCol = GetComponentInChildren<Collider>();
+        proximityTrigger.processorCol = col;
         ToggleProximityTrigger(false);
 
         stateMachine = new StateMachine(this);
         stateMachine.OnStateComplete += OnStateComplete;
 
-        // stateInteractableDetector = new DetectRadiusAngle<IStateInteractable>(transform, StateInteractableManager.I.stateInteractables.instances, 20f, 90f);
-        // characterControlDetector = new DetectRadiusAngle<CharacterControl>(transform, CharacterManager.I.activeCharacterControls, 10f, 0f);
-
-        TryChangeState(statesProfile.GetState(currentState), true);
+        TryChangeState(GetState(), true);
     }
 
     public virtual void OnEnable() {
-        if(!conscriptable) return;
+        foreach(var s in statesProfile.persistentEventStateListeners) {
+            if(!s.eventSO || !s.stateWrapperBase) 
+                continue;
+
+            s.eventSO.AddListener(()=>
+                TryChangeState(s.stateWrapperBase.GetState(), s.forceChange, s.queueIfBusy));
+        }
+
+        if(!conscriptable) 
+            return;
         stateProcessors.Add(this);
         onAddProcessor?.Invoke(this);
     }
 
     public virtual void OnDisable() {
-        if(!conscriptable) return;
+        foreach(var s in statesProfile.persistentEventStateListeners) {
+            if(!s.eventSO || !s.stateWrapperBase) 
+                continue;
+            s.eventSO.CleanupObj(this);
+        }
+
+        if(!conscriptable) 
+            return;
         stateProcessors.Remove(this);
         onRemoveProcessor?.Invoke(this);
     }
@@ -82,25 +122,44 @@ public class StateProcessor : MonoBehaviour
         stateMachine.OnUpdate();
     }
 
-    public IState GetState() {
-        return statesProfile.GetState(currentState);
+    public void QueueState(IState state) {
+        eventStateQueue.Enqueue(state);
     }
 
-    public virtual bool TryChangeState(IState state, bool forceChange = false) {
+    public IState GetState() {
+        var state = statesProfile.GetState(this);
+        if(eventStateQueue.Count > 0) {
+            if(eventStateQueue.Peek().priority > state.priority)
+                state = eventStateQueue.Dequeue();
+        }
+        return state;
+    }
+
+    public virtual bool TryChangeState(IState state, bool forceChange = false, bool addToQueue = false) {
+        if(state == null) {
+            Debug.LogWarning($"{gameObject} null state");
+            return false;
+        }
         if(stateMachine.CanChangeState(state) || forceChange) {
             stateMachine.ChangeState(state);
             // Debug.Log(state);
             currentState = state;
             return true;
         }
+        else if(addToQueue) {
+            Debug.Log($"Added {state} to queue");
+            QueueState(state);
+            return false;
+        }
         Debug.Log($"Failed to change state: {state}");
         return false;
     }
 
     protected virtual void OnStateComplete() {
+        // Debug.Log($"{currentState} complete"); 
         CleanupState();
         onStateComplete?.Invoke();
-        TryChangeState(statesProfile.GetState(currentState));
+        TryChangeState(GetState());
     }
 
     public virtual void AbortState() {
@@ -112,8 +171,7 @@ public class StateProcessor : MonoBehaviour
 
     protected virtual void CleanupState() {
         ToggleProximityTrigger(false);
-        itemArranger?.gameObject.SetActive(false);
-        currentState.OnExit();
+        
         currentState = null;
     }
 
@@ -127,31 +185,25 @@ public class StateProcessor : MonoBehaviour
         currentTarget = target;
     }
 
-    public virtual void ShowItems(List<ItemInstance> items) {
-        if(itemArranger) {
-            itemArranger.gameObject.SetActive(true);
-            itemArranger.UpdateItems(items);
+    public virtual void UpdateAnimStateInfo() {
+        for(int i = 0; i < anim.layerCount; ++i) {
+            prevAnimStateInfo[i] = currAnimStateInfo[i];
+            currAnimStateInfo[i] = anim.GetCurrentAnimatorStateInfo(i);
         }
     }
 
-    public virtual void HideItems(List<ItemInstance> items) {
-        if(itemArranger) {
-            itemArranger.HideItems();
-            itemArranger.gameObject.SetActive(false);
-        }
-    }
-
-    public virtual void PlayAnimation(AnimationClip clip) {
+    public virtual void PlayAnimationImmediate(AnimationClip clip) {
         AnimationPlayableUtilities.PlayClip(anim, clip, out playableGraph);
     }
 
-    AnimatorStateInfo prevAnimStateInfo0, currAnimStateInfo0;
-    public virtual bool CheckAnimStateChanged() {
-        prevAnimStateInfo0 = currAnimStateInfo0;
-        currAnimStateInfo0 = anim.GetCurrentAnimatorStateInfo(0);
-        if(prevAnimStateInfo0.shortNameHash != currAnimStateInfo0.shortNameHash) {
+    public virtual bool CheckAnimStateChangedToDefault(int layer) {
+        UpdateAnimStateInfo();
+
+        if(prevAnimStateInfo[layer].shortNameHash != currAnimStateInfo[layer].shortNameHash 
+        && currAnimStateInfo[layer].shortNameHash == defaultAnimStateInfo[layer].shortNameHash
+        )
             return true;
-        }
+
         return false;
     }
 

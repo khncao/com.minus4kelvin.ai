@@ -27,6 +27,10 @@ public class Follow : IState {
 
         if(_target == null && processor.currentTarget != null) {
             _target = processor.currentTarget;
+            _pathCommand.AssignTarget(_target);
+        }
+        if(_target == null) {
+            Debug.LogWarning("No target in follow state");
         }
     }
 
@@ -47,7 +51,7 @@ public class Follow : IState {
     }
 
     bool PastThreshold() {
-        return (processor.transform.position - _target.position).sqrMagnitude > _squaredFollowThreshold;
+        return (int)((processor.transform.position - _target.position).sqrMagnitude) > _squaredFollowThreshold;
     }
 }
 
@@ -68,6 +72,7 @@ public class FollowWrapper : StateWrapper {
 
 [CreateAssetMenu(fileName = "FollowState", menuName = "Data/AI/States/FollowState", order = 0)]
 public class FollowState : StateWrapperBase {
+    [Header("Target->FindTargetTag->processor currentTarget")]
     [Tooltip("Leaving null will try to find targetTag, then try processor currentTarget")]
     public Transform target;
     public string targetTag;

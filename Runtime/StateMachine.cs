@@ -28,7 +28,7 @@ public class StateMachine
     public void ChangeState(IState newState) {
         _currState?.OnExit();
         _currState = newState;
-        newState.OnEnter(processor);
+        newState?.OnEnter(processor);
     }
 
     /// <summary>

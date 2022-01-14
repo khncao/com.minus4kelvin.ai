@@ -10,11 +10,11 @@ public class UnityEventListener : IState {
     public StateProcessor processor { get; private set; }
 
     IState _state;
-    EventSO _unityEvent;
+    UnityEventSO _unityEvent;
 
     bool _reacting;
 
-    public UnityEventListener(EventSO unityEvent, IState state, int priority = -1, StateProcessor processor = null) {
+    public UnityEventListener(UnityEventSO unityEvent, IState state, int priority = -1, StateProcessor processor = null) {
         this._state = state;
         this._unityEvent = unityEvent;
         this._reacting = false;
@@ -59,7 +59,7 @@ public class UnityEventListenerWrapper : StateWrapper {
     [SubclassSelector]
 #endif
     public StateWrapper reactState;
-    public EventSO unityEvent;
+    public UnityEventSO unityEvent;
 
 
     public override IState GetState() {
@@ -70,7 +70,7 @@ public class UnityEventListenerWrapper : StateWrapper {
 [CreateAssetMenu(fileName = "UnityEventListenerState", menuName = "Data/AI/States/UnityEventListenerState", order = 0)]
 public class UnityEventListenerState : StateWrapperBase {
     public StateWrapperBase reactState;
-    public EventSO unityEvent;
+    public UnityEventSO unityEvent;
 
 
     public override IState GetState() {

@@ -44,9 +44,9 @@ public class Task : IState
 
     public void OnExit() {
         _sequenceState.OnExit();
-        if(processor.itemArranger.isActive) { // if has task items
-            // create drop for player/ai pick up or return items to original storage location
-        }
+        // if(processor.itemArranger.isActive) { // if has task items
+        //     // create drop for player/ai pick up or return items to original storage location
+        // }
         // Re register incomplete task
         // if(!_completed) {
         //     TaskManager.I.RegisterTask(this);

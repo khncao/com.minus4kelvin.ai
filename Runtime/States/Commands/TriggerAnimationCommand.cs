@@ -7,57 +7,48 @@ public struct TriggerAnimation : IState {
     public int priority { get; set; }
     public StateProcessor processor { get; private set; }
     string _paramName;
+    int _stateLayer;
 
-    // bool _triggerSet;
-    // assuming 1 transition to goal: 2 for complete; 1 to state + 1 exit state
-    int _stateChangeCount; 
-
-    public TriggerAnimation(string paramName, int priority = -1, StateProcessor processor = null) {
+    public TriggerAnimation(int stateLayer, string paramName, int priority = -1, StateProcessor processor = null) {
         this._paramName = paramName;
+        this._stateLayer = stateLayer;
         this.processor = processor;
         this.priority = priority;
-        // _triggerSet = false;
-        _stateChangeCount = 0;
     }
 
     public void OnEnter(StateProcessor processor) {
         this.processor = processor;
-        processor.anim.SetTrigger(_paramName);
-        // _triggerSet = true;
+        processor.anim?.SetTrigger(_paramName);
     }
 
     public bool OnUpdate() {
-        // if(_triggerSet) {
-            if(processor.CheckAnimStateChanged())
-                _stateChangeCount++;
-            if(_stateChangeCount == 2)
-                return true;
-        // }
+        if(processor.CheckAnimStateChangedToDefault(_stateLayer))
+            return true;
         return false;
     }
 
     public void OnExit() {
         processor?.anim?.ResetTrigger(_paramName);
-        // _triggerSet = false;
-        _stateChangeCount = 0;
     }
 }
 
 [System.Serializable]
 public class TriggerAnimationWrapper : StateWrapper {
+    public int stateLayer;
     public string paramName;
 
     public override IState GetState() {
-        return new TriggerAnimation(paramName, priority);
+        return new TriggerAnimation(stateLayer, paramName, priority);
     }
 }
 
 [CreateAssetMenu(fileName = "TriggerAnimationCommand", menuName = "Data/AI/States/TriggerAnimationCommand", order = 0)]
 public class TriggerAnimationCommand : StateWrapperBase {
+    public int stateLayer;
     public string paramName;
 
     public override IState GetState() {
-        return new TriggerAnimation(paramName, priority);
+        return new TriggerAnimation(stateLayer, paramName, priority);
     }
 }
 }

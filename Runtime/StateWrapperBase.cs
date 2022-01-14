@@ -8,6 +8,7 @@ namespace m4k.AI {
 /// </summary>
 [Serializable]
 public abstract class StateWrapper {
+    [Range(-100, 100)]
     public int priority;
     public Conditions conditions;
 
