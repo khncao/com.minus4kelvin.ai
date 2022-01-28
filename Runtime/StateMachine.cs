@@ -7,27 +7,26 @@ public class StateMachine
 {
     public event System.Action OnStateComplete;
     public StateProcessor processor { get; private set; }
-    
-    IState _currState;
+    public IState currentState { get; private set; }
 
     public StateMachine(StateProcessor processor) {
         this.processor = processor;
     }
 
     public virtual void OnUpdate() {
-        if(_currState == null)
+        if(currentState == null)
             return;
 
-        if(_currState.OnUpdate()) {
-            _currState.OnExit();
-            _currState = null;
+        if(currentState.OnUpdate()) {
+            currentState.OnExit();
+            currentState = null;
             OnStateComplete?.Invoke();
         }
     }
 
     public void ChangeState(IState newState) {
-        _currState?.OnExit();
-        _currState = newState;
+        currentState?.OnExit();
+        currentState = newState;
         newState?.OnEnter(processor);
     }
 
@@ -37,7 +36,7 @@ public class StateMachine
     /// <param name="state"></param>
     /// <returns></returns>
     public bool CanChangeState(IState state) {
-        return _currState == null || _currState.priority < state.priority;
+        return currentState == null || currentState.priority < state.priority;
     }
 }
 }

@@ -1,9 +1,10 @@
 using UnityEngine;
 
 namespace m4k.AI {
-public struct Interact : IState {
+public struct Interact : IState, ITargetHandler {
     public int priority { get; set; }
     public StateProcessor processor { get; private set; }
+    public Transform target { get; set; }
 
     IStateInteractable _interactable;
 
@@ -11,13 +12,17 @@ public struct Interact : IState {
         this._interactable = interactable;
         this.processor = processor;
         this.priority = priority;
+        this.target = null;
     }
 
     public void OnEnter(StateProcessor processor) {
         this.processor = processor;
-        if(_interactable == null && processor.currentTarget) {
-            if(processor.currentTarget.TryGetComponent<IStateInteractable>(out IStateInteractable interactable)) 
+        if(_interactable == null && target) {
+            if(target.TryGetComponent<IStateInteractable>(out IStateInteractable interactable)) 
                 _interactable = interactable;
+        }
+        if(_interactable == null) {
+            Debug.LogWarning("No interactable");
         }
         _interactable.OnStateInteract(this);
     }
@@ -29,6 +34,7 @@ public struct Interact : IState {
 
 [System.Serializable]
 public class InteractWrapper : StateWrapper {
+    [Header("Target->WrappingState(detector)")]
     [Tooltip("GameObject with component that implements IStateInteractable")]
     public GameObject target;
 
@@ -41,7 +47,7 @@ public class InteractWrapper : StateWrapper {
 
 [CreateAssetMenu(fileName = "InteractCommand", menuName = "Data/AI/States/InteractCommand", order = 0)]
 public class InteractCommand : StateWrapperBase {
-    [Header("IStateInteractable on target or processor currentTarget if null")]
+    [Header("Target->WrappingState(detector)")]
     [Tooltip("GameObject with component that implements IStateInteractable")]
     public GameObject target;
 

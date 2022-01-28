@@ -7,19 +7,20 @@ namespace m4k.AI {
 /// Super state; ordered sequence of command states to perform complex task.
 /// </summary>
 [System.Serializable]
-public class StateSequence : IState
+public class StateSequence : IState, IStateHandler
 {
     public int priority { get; private set; }
     public StateProcessor processor { get; private set; }
-
+    public IState currentState { get; private set; }
+    
     LinkedList<IState> _commandList;
     LinkedListNode<IState> _currentNode;
-    IState _currentCommand;
+    
 
     public StateSequence(int priority = -1, StateProcessor processor = null) {
         this.priority = priority;
         this.processor = processor;
-        this._currentCommand = null;
+        this.currentState = null;
         _commandList = new LinkedList<IState>();
         _currentNode = null;
     }
@@ -32,29 +33,29 @@ public class StateSequence : IState
         this.processor = processor;
 
         _currentNode = _commandList.First;
-        _currentCommand = _currentNode.Value;
-        _currentCommand.OnEnter(processor);
+        currentState = _currentNode.Value;
+        currentState.OnEnter(processor);
     }
 
     public bool OnUpdate() {
-        if(_currentCommand != null && _currentCommand.OnUpdate()) {
-            _currentCommand.OnExit();
+        if(currentState != null && currentState.OnUpdate()) {
+            currentState.OnExit();
 
             if(_currentNode == _commandList.Last) {
                 return true;
             }
             else {
                 _currentNode = _currentNode.Next;
-                _currentCommand = _currentNode.Value;
-                _currentCommand.OnEnter(processor);
+                currentState = _currentNode.Value;
+                currentState.OnEnter(processor);
             }
         }
         return false;
     }
 
     public void OnExit() {
-        _currentCommand?.OnExit();
-        _currentCommand = null;
+        currentState?.OnExit();
+        currentState = null;
     }
 }
 

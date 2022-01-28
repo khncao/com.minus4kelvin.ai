@@ -54,7 +54,7 @@ public class Patrol : IState {
         else if(currentCommand == null) {
             _currentIndex = _randomOrder ? Random.Range(0, _orderedPoints.Count) : (_currentIndex + 1) % _orderedPoints.Count;
 
-            _pathCommand.AssignTarget(_orderedPoints[_currentIndex]);
+            _pathCommand.target = _orderedPoints[_currentIndex];
             currentCommand = _pathCommand;
             currentCommand.OnEnter(processor);
         }

@@ -1,8 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Animations;
-using UnityEngine.Playables;
 using m4k.Items;
 using m4k.Characters;
 
@@ -10,10 +8,10 @@ namespace m4k.AI {
 /// <summary>
 /// AI agent that contains and manages the primary state machine. Passed into IState classes for access to character related actions such as navigation, inventory, and animation. Derive from, or directly modify to add state actions.
 /// </summary>
-public class StateProcessor : MonoBehaviour
+public class StateProcessor : MonoBehaviour, IStateHandler
 {
     // TODO: move animation utilities to more abstract/general context
-    public static List<StateProcessor> stateProcessors { get; } = new List<StateProcessor>();
+    public static List<StateProcessor> instances { get; } = new List<StateProcessor>();
     public static System.Action<StateProcessor> onAddProcessor, onRemoveProcessor;
 
     public StatesProfile statesProfile;
@@ -30,13 +28,12 @@ public class StateProcessor : MonoBehaviour
     public System.Action onStateComplete, onArrive;
 
     public bool HasState { get { return currentState != null; } }
+    public bool isStopped { get; set; }
     public IState currentState { get; private set; }
-    public Transform currentTarget { get; private set; } // can be set and used by special states; for carrying detected closest target from state to state
 
     protected float lastAbortTime;
     protected bool abortingTask;
 
-    protected PlayableGraph playableGraph;
     protected StateMachine stateMachine;
 
     protected Queue<IState> eventStateQueue = new Queue<IState>();
@@ -101,7 +98,7 @@ public class StateProcessor : MonoBehaviour
 
         if(!conscriptable) 
             return;
-        stateProcessors.Add(this);
+        instances.Add(this);
         onAddProcessor?.Invoke(this);
     }
 
@@ -114,12 +111,24 @@ public class StateProcessor : MonoBehaviour
 
         if(!conscriptable) 
             return;
-        stateProcessors.Remove(this);
+        instances.Remove(this);
         onRemoveProcessor?.Invoke(this);
     }
 
     public virtual void Update() {
         stateMachine.OnUpdate();
+    }
+
+    public virtual void Resume() {
+        OnEnable();
+        isStopped = false;
+        TryChangeState(GetState(), true);
+    }
+
+    public virtual void Stop() {
+        TryChangeState(null, true);
+        isStopped = true;
+        OnDisable();
     }
 
     public void QueueState(IState state) {
@@ -136,11 +145,10 @@ public class StateProcessor : MonoBehaviour
     }
 
     public virtual bool TryChangeState(IState state, bool forceChange = false, bool addToQueue = false) {
-        if(state == null) {
-            Debug.LogWarning($"{gameObject} null state");
+        if(isStopped) {
             return false;
         }
-        if(stateMachine.CanChangeState(state) || forceChange) {
+        if(forceChange || stateMachine.CanChangeState(state)) {
             stateMachine.ChangeState(state);
             // Debug.Log(state);
             currentState = state;
@@ -181,8 +189,8 @@ public class StateProcessor : MonoBehaviour
         movable.Stop();
     }
 
-    public virtual void SetTarget(Transform target) {
-        currentTarget = target;
+    public virtual void ToggleProximityTrigger(bool b) {
+        proximityTrigger?.gameObject.SetActive(b);
     }
 
     public virtual void UpdateAnimStateInfo() {
@@ -190,10 +198,6 @@ public class StateProcessor : MonoBehaviour
             prevAnimStateInfo[i] = currAnimStateInfo[i];
             currAnimStateInfo[i] = anim.GetCurrentAnimatorStateInfo(i);
         }
-    }
-
-    public virtual void PlayAnimationImmediate(AnimationClip clip) {
-        AnimationPlayableUtilities.PlayClip(anim, clip, out playableGraph);
     }
 
     public virtual bool CheckAnimStateChangedToDefault(int layer) {
@@ -206,15 +210,6 @@ public class StateProcessor : MonoBehaviour
 
         return false;
     }
-
-    public virtual void DestroyObject(GameObject go) {
-        Destroy(go);
-    }
-
-    public virtual void ToggleProximityTrigger(bool b) {
-        proximityTrigger?.gameObject.SetActive(b);
-    }
-
 
 }
 }

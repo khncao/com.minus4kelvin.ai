@@ -60,7 +60,9 @@ public class SphereDetection : IState {
         
         if(_detector.UpdateHits()) 
         {
-            processor.SetTarget(_detector.GetCachedClosest().transform);
+            if(_gotoState is ITargetHandler handler) {
+                handler.target = _detector.GetCachedClosest().transform;
+            }
             processor.TryChangeState(_gotoState, true);
             return false; // prevent onStateComplete call
         }
@@ -75,7 +77,6 @@ public class SphereDetection : IState {
 [System.Serializable]
 public class SphereDetectionStateWrapper : StateWrapper {
     public LayerMask layerMask;
-    [Header("Optional")]
     public string tag;
     public float maxSquaredRange;
     [Range(0f, 360f)]
@@ -99,7 +100,6 @@ public class SphereDetectionStateWrapper : StateWrapper {
 [CreateAssetMenu(fileName = "SphereDetectionState", menuName = "Data/AI/States/SphereDetectionState", order = 0)]
 public class SphereDetectionState : StateWrapperBase {
     public LayerMask layerMask;
-    [Header("Optional")]
     public string tag;
     public float maxSquaredRange;
     [Range(0f, 360f)]

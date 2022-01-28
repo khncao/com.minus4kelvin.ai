@@ -41,6 +41,10 @@ public class StatesProfile : ScriptableObject {
     Dictionary<StateProcessor, Dictionary<StateWrapperBase, IState>> processorStateCache = new Dictionary<StateProcessor, Dictionary<StateWrapperBase, IState>>();
 
     private void Awake() {
+        Reset();
+    }
+
+    public void Reset() {
         processorStateCache = new Dictionary<StateProcessor, Dictionary<StateWrapperBase, IState>>();
     }
 

@@ -35,7 +35,10 @@ public class CharacterDetection : IState {
         _detector.UpdateHits()) 
         {
             _lastCheckTime = Time.time;
-            processor.SetTarget(_detector.GetCachedClosest().transform);
+            
+            if(_gotoState is ITargetHandler handler) {
+                handler.target = _detector.GetCachedClosest().transform;
+            }
             processor.TryChangeState(_gotoState, true);
             return false; // prevent onStateComplete call
         }

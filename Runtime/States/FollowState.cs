@@ -2,21 +2,21 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace m4k.AI {
-public class Follow : IState {
+public class Follow : IState, ITargetHandler {
     public int priority { get; private set; }
     public StateProcessor processor { get; private set; }
     public IState currentCommand { get; private set; }
+    public Transform target { get; set; }
 
-    Transform _target;
     Path _pathCommand;
     float _squaredFollowThreshold;
 
     public Follow(Transform target, float squaredFollowThreshold, int priority = -1, StateProcessor processor = null) {
         this.processor = processor;
         this.priority = priority;
-        this._target = target;
+        this.target = target;
         this._squaredFollowThreshold = squaredFollowThreshold;
-        _pathCommand = new Path(_target);
+            _pathCommand = new Path(this.target);
         currentCommand = null;
     }
 
@@ -25,13 +25,10 @@ public class Follow : IState {
         _pathCommand.OnEnter(processor);
         currentCommand = _pathCommand;
 
-        if(_target == null && processor.currentTarget != null) {
-            _target = processor.currentTarget;
-            _pathCommand.AssignTarget(_target);
-        }
-        if(_target == null) {
+        if(target == null) {
             Debug.LogWarning("No target in follow state");
         }
+        _pathCommand.target = target;
     }
 
     public bool OnUpdate() {
@@ -51,13 +48,14 @@ public class Follow : IState {
     }
 
     bool PastThreshold() {
-        return (int)((processor.transform.position - _target.position).sqrMagnitude) > _squaredFollowThreshold;
+        return (int)((processor.transform.position - target.position).sqrMagnitude) > _squaredFollowThreshold;
     }
 }
 
 [System.Serializable]
 public class FollowWrapper : StateWrapper {
-    [Tooltip("Leaving null will try to find targetTag, then try processor currentTarget")]
+    [Header("Target->FindTargetByTag->WrappingState(detector)")]
+    [Tooltip("Leaving null will try to find targetTag")]
     public Transform target;
     public string targetTag;
     public float squaredFollowThreshold;
@@ -72,8 +70,8 @@ public class FollowWrapper : StateWrapper {
 
 [CreateAssetMenu(fileName = "FollowState", menuName = "Data/AI/States/FollowState", order = 0)]
 public class FollowState : StateWrapperBase {
-    [Header("Target->FindTargetTag->processor currentTarget")]
-    [Tooltip("Leaving null will try to find targetTag, then try processor currentTarget")]
+    [Header("Target->FindTargetByTag->WrappingState(detector)")]
+    [Tooltip("Leaving null will try to find targetTag")]
     public Transform target;
     public string targetTag;
     public float squaredFollowThreshold;

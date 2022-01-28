@@ -1,16 +1,17 @@
 using UnityEngine;
 
 namespace m4k.AI {
-public struct Path : IState {
+public struct Path : IState, ITargetHandler {
     public int priority { get; set; }
     public StateProcessor processor { get; private set; }
-    Transform _targetTransform;
+    public Transform target { get; set; }
+
     Vector3 _targetPosition;
 
     // bool _arrived;
 
     public Path(Transform t, int priority = -1, StateProcessor processor = null) {
-        _targetTransform = t;
+        target = t;
         _targetPosition = Vector3.zero;
         this.processor = processor;
         this.priority = priority;
@@ -19,7 +20,7 @@ public struct Path : IState {
 
     public Path(Vector3 pos, int priority = -1, StateProcessor processor = null) {
         _targetPosition = pos;
-        _targetTransform = null;
+        target = null;
         this.processor = processor;
         this.priority = priority;
         // this._arrived = false;
@@ -29,8 +30,8 @@ public struct Path : IState {
         this.processor = processor;
         // this._arrived = false;
 
-        if(_targetTransform)
-            processor.movable.SetTarget(_targetTransform);
+        if(target)
+            processor.movable.SetTarget(target);
         else
             processor.movable.SetTarget(_targetPosition);
         
@@ -49,10 +50,6 @@ public struct Path : IState {
         processor.movable.Stop();
     }
 
-    public void AssignTarget(Transform t) {
-        _targetTransform = t;
-    }
-
     public void AssignTarget(Vector3 pos) {
         _targetPosition = pos;
     }
@@ -65,6 +62,7 @@ public struct Path : IState {
 
 [System.Serializable]
 public class PathWrapper : StateWrapper {
+    [Header("Target->Position->WrappingState(detector)")]
     [Tooltip("Will fallback to targetPosition if null")]
     public Transform targetTransform;
     public Vector3 targetPosition;
@@ -79,6 +77,7 @@ public class PathWrapper : StateWrapper {
 
 [CreateAssetMenu(fileName = "PathCommand", menuName = "Data/AI/States/PathCommand", order = 0)]
 public class PathCommand : StateWrapperBase {
+    [Header("Target->Position->WrappingState(detector)")]
     [Tooltip("Will fallback to targetPosition if null")]
     public Transform targetTransform;
     public Vector3 targetPosition;

@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace m4k.AI {
 /// <summary>
-/// Base for deriving state wrappers used in StatesProfile and other editor editing applications
+/// Base for deriving state wrappers used in StatesProfile and other editor editing applications. Requires SerializeReference attribute and custom editor
 /// </summary>
 [Serializable]
 public abstract class StateWrapper {
@@ -15,6 +15,9 @@ public abstract class StateWrapper {
     public abstract IState GetState();
 }
 
+/// <summary>
+/// ScriptableObject IState base wrapper
+/// </summary>
 public abstract class StateWrapperBase : ScriptableObject {
     public int priority;
     public Conditions conditions;

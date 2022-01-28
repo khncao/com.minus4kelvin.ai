@@ -21,8 +21,8 @@
 - Certain states, commands, and interactables that are less general-use
 
 ### Todo
-- Character playable animation clips blend from animatorController
-- Additional states: combat, processor-character interactions
+- Isolate to be standalone with no core dependency
+- Additional states: processor-character interactions
 - Interactable processor arranger for formations, queues, etc.
 - Scene prewarm with active processors in various states and positions
 

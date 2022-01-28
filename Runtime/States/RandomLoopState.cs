@@ -5,10 +5,10 @@ namespace m4k.AI {
 /// <summary>
 /// Random IStates from list; interval between states; states should be recyclable
 /// </summary>
-public class RandomLoop : IState {
+public class RandomLoop : IState, IStateHandler {
     public int priority { get; private set; }
     public StateProcessor processor { get; private set; }
-    public IState currentCommand { get; private set; }
+    public IState currentState { get; private set; }
 
     List<IState> _states;
     float _intervalBetweenStates;
@@ -32,35 +32,35 @@ public class RandomLoop : IState {
             Debug.LogError("Error: invalid list");
             return;
         }
-        currentCommand = _states[0];
-        currentCommand.OnEnter(processor);
+        currentState = _states[0];
+        currentState.OnEnter(processor);
         _transitionTimer = _intervalBetweenStates;
     }
 
     public bool OnUpdate() {
-        if(currentCommand != null && currentCommand.OnUpdate()) {
+        if(currentState != null && currentState.OnUpdate()) {
             _transitionTimer = _intervalBetweenStates;
-            currentCommand.OnExit();
-            currentCommand = null;
+            currentState.OnExit();
+            currentState = null;
         }
 
         if(_transitionTimer > 0f) {
             _transitionTimer -= Time.deltaTime;
         }
-        else if(currentCommand == null) {
+        else if(currentState == null) {
             int index = Random.Range(0, _states.Count);
 
-            currentCommand = _states[index];
-            currentCommand.OnEnter(processor);
+            currentState = _states[index];
+            currentState.OnEnter(processor);
         }
 
         return false;
     }
 
     public void OnExit() {
-        currentCommand?.OnExit();
+        currentState?.OnExit();
         _transitionTimer = 0f;
-        currentCommand = null;
+        currentState = null;
     }
 }
 
