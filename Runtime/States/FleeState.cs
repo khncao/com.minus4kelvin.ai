@@ -9,7 +9,8 @@ public struct Flee : IState, ITargetHandler {
     public IState currentCommand { get; private set; }
     public Transform target { get; set; }
 
-    const float NavSampleRadius = 10f;
+    float _navSampleRadius;
+    int _areaMask;
 
     Path _pathCommand;
     float _triggerSqrDistance;
@@ -25,10 +26,19 @@ public struct Flee : IState, ITargetHandler {
         this._fleeSpeed = fleeSpeed;
         _pathCommand = new Path(this.target);
         currentCommand = null;
+        _navSampleRadius = 1f;
+        _areaMask = NavMesh.AllAreas;
     }
 
     public void OnEnter(StateProcessor processor) {
         this.processor = processor;
+        if(processor.TryGetComponent<NavMeshAgent>(out var agent)) {
+            _navSampleRadius = agent.height * 2f;
+            _areaMask = agent.areaMask;
+        }
+        else {
+            Debug.LogWarning("No NavMeshAgent found on processor");
+        }
 
         if(target == null) {
             Debug.LogWarning("No target in Flee state");
@@ -48,15 +58,15 @@ public struct Flee : IState, ITargetHandler {
         && roundedSqrDistance < _triggerSqrDistance) {
             Vector3 newPosition = processor.transform.position + (direction.normalized * _fleeDistance);
 
-            if(NavMesh.SamplePosition(newPosition, out NavMeshHit hit, NavSampleRadius, NavMesh.AllAreas)) {
+            if(NavMesh.SamplePosition(newPosition, out NavMeshHit hit, _navSampleRadius, _areaMask)) {
                 newPosition = hit.position;
-            }
-            // processor.movable.SetTarget(newPosition);
-            _pathCommand.AssignTarget(newPosition);
-            _pathCommand.OnEnter(processor);
-            processor.movable.Speed = _fleeSpeed;
+                
+                _pathCommand.AssignTarget(newPosition);
+                _pathCommand.OnEnter(processor);
+                processor.movable.Speed = _fleeSpeed;
 
-            currentCommand = _pathCommand;
+                currentCommand = _pathCommand;
+            }
         }
         return false;
     }

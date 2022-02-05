@@ -23,15 +23,26 @@ public struct Wander : IState {
         // this._arrived = false;
 
         Vector3 pivotPos = _targetPosition == Vector3.zero ? processor.transform.position : _targetPosition;
-        Vector3 newPosition = pivotPos + Random.insideUnitSphere * _radius;
-        NavMeshHit hit;
-        // if(NavMesh.SamplePosition(newPosition, out hit, _radius, NavMesh.GetAreaFromName("Indoors"))) { }
-        if(NavMesh.SamplePosition(newPosition, out hit, _radius, NavMesh.AllAreas)) {
-            newPosition = hit.position;
-        }
-        processor.movable.SetTarget(newPosition);
+        Vector2 groundRandom = Random.insideUnitCircle;
+        Vector3 newPosition = pivotPos + new Vector3(groundRandom.x, 0f, groundRandom.y) * _radius;
+        int areaMask = NavMesh.AllAreas;
         
-        processor.ToggleProximityTrigger(true);
+        float sampleRadius = 1f;
+        if(processor.TryGetComponent<NavMeshAgent>(out var agent)) {
+            sampleRadius *= agent.height * 2f;
+            areaMask = agent.areaMask;
+        }
+        
+        if(NavMesh.SamplePosition(newPosition, out NavMeshHit hit, sampleRadius, areaMask)) {
+            newPosition = hit.position;
+            processor.movable.SetTarget(newPosition);
+            
+            processor.ToggleProximityTrigger(true);
+        }
+        else {
+            Debug.LogWarning("No navmesh sample hit");
+        }
+
         // processor.movable.OnArrive += OnArrive;
         // processor.onArrive += OnArrive;
     }
@@ -54,7 +65,7 @@ public struct Wander : IState {
 
 [System.Serializable]
 public class WanderWrapper : StateWrapper {
-    [Tooltip("Leave at default 0, 0, 0 to pivot from current processor position")]
+    [Header("Leave at default 0, 0, 0 to pivot\nfrom current processor position")]
     public Vector3 pivotPosition;
     public float radius;
 
@@ -65,7 +76,7 @@ public class WanderWrapper : StateWrapper {
 
 [CreateAssetMenu(fileName = "WanderCommand", menuName = "Data/AI/States/WanderCommand", order = 0)]
 public class WanderCommand : StateWrapperBase {
-    [Tooltip("Leave at default 0, 0, 0 to pivot from current processor position")]
+    [Header("Leave at default 0, 0, 0 to pivot\nfrom current processor position")]
     public Vector3 pivotPosition;
     public float radius;
 
