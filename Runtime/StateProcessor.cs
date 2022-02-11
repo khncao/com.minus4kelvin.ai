@@ -41,6 +41,18 @@ public class StateProcessor : MonoBehaviour, IStateHandler
 
     public AnimatorStateInfo[] currAnimStateInfo, prevAnimStateInfo, defaultAnimStateInfo;
 
+    public IState GetCurrentNestedState(int maxDepth = 5) {
+        IState state = currentState;
+        int depth = 0;
+        while(state is IStateHandler stateHandler && depth < maxDepth) {
+            state = stateHandler.currentState;
+            depth++;
+            if(depth == maxDepth) 
+                Debug.LogWarning("MaxDepth reached");
+        }
+        return state;
+    }
+
     protected virtual void Start() {
         movable = GetComponentInChildren<INavMovable>();
         if(movable == null)
