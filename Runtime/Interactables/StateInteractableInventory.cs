@@ -37,22 +37,18 @@ public class StateInteractableInventory : MonoBehaviour, IStateInteractable
         if(!isQuantitive) {
             return;
         }
-        switch(state) {
-            case GetItems: {
-                // transfer _inventory items to state.processor
-                var transfer = ((GetItems)state).items;
-                foreach(var i in transfer) {
-                    _inventory.RemoveItemAmount(i.item, i.amount);
-                }
-                break;
+        if(state is GetItems getItems) {
+            // transfer _inventory items to state.processor
+            var transfer = getItems.items;
+            foreach(var i in transfer) {
+                _inventory.RemoveItemAmount(i.item, i.amount);
             }
-            case PutItems: {
-                // from state.processor to _inventory
-                var transfer = ((PutItems)state).items;
-                foreach(var i in transfer) {
-                    _inventory.AddItemAmount(i.item, i.amount);
-                }
-                break;
+        }
+        else if(state is PutItems putItems) {
+            // from state.processor to _inventory
+            var transfer = putItems.items;
+            foreach(var i in transfer) {
+                _inventory.AddItemAmount(i.item, i.amount);
             }
         }
     }
@@ -61,23 +57,20 @@ public class StateInteractableInventory : MonoBehaviour, IStateInteractable
         if(!isQuantitive) {
             return true;
         }
-        switch(state) {
-            case GetItems: {
-                var transfer = ((GetItems)state).items;
-                foreach(var i in transfer) {
-                    if(!items.Exists(x=>x.item == i.item))
-                        return false;
-                }
-                break;
-            }
-            case PutItems: {
-                var transfer = ((PutItems)state).items;
-                foreach(var i in transfer) {
-                    return _inventory.GetMaxAmountItemsFit(i.item) < i.amount;
-                }
-                break;
+        if(state is GetItems getItems) {
+            var transfer = getItems.items;
+            foreach(var i in transfer) {
+                if(!items.Exists(x=>x.item == i.item))
+                    return false;
             }
         }
+        else if(state is PutItems putItems) {
+            var transfer = putItems.items;
+            foreach(var i in transfer) {
+                return _inventory.GetMaxAmountItemsFit(i.item) < i.amount;
+            }
+        }
+        
         return false;
     }
 
